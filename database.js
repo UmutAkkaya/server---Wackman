@@ -18,6 +18,7 @@ var UserSchema = mongoose.Schema({
     type: String, //-1: undefined, 0: Wackman, 1: Kerry, Jerry, Berry, Coarl, 2: Food/SuperFood
     points: Number,
     invulnerable: Number, //getTime()
+    cooldown: Number, //getTime()
     device_id: String //64bits
 });
 

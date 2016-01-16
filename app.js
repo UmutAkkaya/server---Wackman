@@ -254,6 +254,7 @@ app.post('/player/create', function (req, res) {
                                 type: '-1', //-1, 0: Wackman, 1: Kerry, Jerry, Berry, Coarl, 2: Food, 3: SuperFood
                                 points: 0,
                                 invulnerable: 0,
+                                cooldown: 0,
                                 //dev_id
                                 device_id: req.param('dev_id')
                             });
@@ -275,7 +276,7 @@ app.post('/player/create', function (req, res) {
     });
 });
 //
-//TODO
+//TODO - notifications
 //EAT OR GET EATEN - Donald Trump 
 app.post('/player/interact', function (req, res) {
     db.findOne({
@@ -298,47 +299,67 @@ app.post('/player/interact', function (req, res) {
                     res.send('Cant find opp');
                 } else {
                     //opponent and the player found
-                    if (player.type == '0') {
-                        //if wackman
-                        if (opponent.type == '2') {
-                            //  Why do we care about this We should do this in the opponents 
-                            //part (aka if player == ghost and opponent is pacman)
-                            player.points += 100;
-                            //reassign opponent
-                            //notify player
-                        } else if (opponent.type == '3') {
-                            //SuperFood
-                            player.points += 100;
-                            player.invulnerable = Date.getTime();
-                            //reassign opponent
-                            //notify player
-                        } else if (opponent.type == '1') {
-                            var curtime = Date.getTime();
-                            if (curtime - player.invulnerable < (3.6 * Math.pow(10, 6))) {
-                                player.points += 300;
-                                //reassign opponent
-                                //notify player
-                            }
-                        }
-                    } else if (player.type == '1') {
-                        if (opponent.type == '0') {
-                            if (curtime - player.invulnerable > (3.6 * Math.pow(10, 6))) {
+                    if ((Date.getTime() - player.cooldown > (1.8 * Math.pow(10, 6))) && (Date.getTime() - opponent.cooldown > (1.8 * Math.pow(10, 6)))) {
+                        //if its not under cooldown
+                        if (player.type == '0') {
+                            //if wackman
+
+                            if (opponent.type == '2') {
+                                //  Why do we care about this We should do this in the opponents 
+                                //part (aka if player == ghost and opponent is pacman)
                                 player.points += 100;
-                                //reassign opponent
+                                opponent.type = '1'; //make it jerry :P
+                                opponent.cooldown = Date.getTime();
+                                //set the cooldown time - it cant get eaten nor eat while on cooldown
+
                                 //notify player
+                            } else if (opponent.type == '3') {
+                                //SuperFood
+                                player.points += 100;
+                                player.invulnerable = Date.getTime();
+                                opponent.type = '1';
+                                opponent.cooldown = Date.getTime();
+                                //notify player
+                            } else if (opponent.type == '1') {
+                                var curtime = Date.getTime();
+                                if (curtime - player.invulnerable < (3.6 * Math.pow(10, 6))) {
+                                    player.points += 300;
+                                    var prob = Math.random();
+                                    if (prob < 0.2) {
+                                        opponent.type = '3';
+                                    } else {
+                                        opponent.type = '2';
+                                    }
+                                    opponent.cooldown = Date.getTime();
+                                    //notify player
+                                }
+                            }
+                        } else if (player.type == '1') {
+                            if (opponent.type == '0') {
+                                if (curtime - player.invulnerable > (3.6 * Math.pow(10, 6))) {
+                                    player.points += 100;
+                                    opponent.type = '2';
+                                    opponent.cooldown = Date.getTime();
+                                    player.type = '0';
+                                    //notify player
+                                }
                             }
                         }
+                        //save--------------
+                        player.save(function (err) {
+                            if (err) {
+                                res.send(err.message);
+                            }
+                        });
+                        opponent.save(function (err) {
+                            if (err) {
+                                res.send(err.message);
+                            }
+                        });
+                        //----------------
                     }
-                }
-            });
-            player.save(function (err) {
-                if (err) {
-                    res.status(500);
-                    res.send(err.message);
-                } else {
-                    //return user
-                    res.status(200);
-                    res.send(JSON.stringify(player));
+                    //else they are in cooldown no interaction
+                    //notify player
                 }
             });
         }
