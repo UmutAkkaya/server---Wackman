@@ -37,9 +37,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/players/list', function (req, res) {
     db.find({}, function (err, result) {
         if (!err) {
+            res.status(200);
             res.send(JSON.stringify(result));
         } else {
             res.status(444);
+            res.send(err.message);
         }
     });
 });
@@ -68,10 +70,11 @@ function get_peeps_around(xcord, ycord, radius, callback) {
             console.log(list);
             var i;
             for (i = 0; i < list.length; i++) {
-                var dist = longlan_to_meters(list[i].y, ynum, list[i].x, xnum);
+                var dist = longlan_to_meters(list[i].location.x, xnum, list[i].location.y, ynum);
                 console.log(dist);
-                if (dist <= radnum && dist >= radnum) {
-                    peeps_around.append(list[i]);
+                //default distance is 1500 km
+                if (dist <= 1500 && dist >= -1500) {
+                    peeps_around.push(list[i]);
                 }
             }
             console.log(peeps_around);
@@ -163,7 +166,11 @@ app.get('/player/get/:name', function (req, res) {
 });
 
 function longlan_to_meters(lat1, lat2, lon1, lon2) {
-
+    console.log("calculating distance");
+    console.log("lat1: " + lat1);
+    console.log("lat2: " + lat2);
+    console.log("lon1: " + lon1);
+    console.log("lon2: " + lon2);
     var Lat1 = lat1 * Math.PI / 180;
     var Lat2 = lat2 * Math.PI / 180;
     var deltalat = (lat2 - lat1) * Math.PI / 180;
@@ -175,6 +182,7 @@ function longlan_to_meters(lat1, lat2, lon1, lon2) {
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     var d = R * c;
+    console.log("d: " + d);
     return d;
 }
 
@@ -239,9 +247,9 @@ app.post('/player/create', function (req, res) {
                                 username: req.param('name'),
                                 //default values
                                 location: {
-                                    x: '10',
-                                    y: '70',
-                                    Acc: '20'
+                                    x: '0',
+                                    y: '0',
+                                    Acc: '0'
                                 },
                                 type: '-1', //-1, 0: Wackman, 1: Kerry, Jerry, Berry, Coarl, 2: Food, 3: SuperFood
                                 points: 0,
@@ -350,7 +358,7 @@ app.post('/player/update', function (req, res) {
         } else {
             if (!player) {
                 res.status(404);
-                res.send(err.message);
+                res.send("No player");
             } else {
                 player.location.x = req.param('x');
                 player.location.y = req.param('y');
