@@ -234,6 +234,30 @@ function setup_player(player, callback) {
     }
 }
 
+
+//add bot to a coord
+function add_bot(xcord, ycord, type) {
+    var bot = new db({
+        username: namelist[Math.floor(Math.random() * namelist.length)],
+        location: {
+            x: xcord,
+            y: ycord,
+            Acc: '10'
+        },
+        type: type,
+        points: 0,
+        invulnerable: 0,
+        cooldown: 0,
+        last_checkin: (new Date).getTime,
+        device_id: "bot" + (new Date).getTime
+    });
+    bot.save(function (err) {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
+
 //find distance between coords
 function longlan_to_meters(lat1, lat2, lon1, lon2) {
     var Lat1 = lat1 * Math.PI / 180;
@@ -561,23 +585,6 @@ app.post('/player/interact', function (req, res) {
     });
 });
 
-//add bot to a coord
-function add_bot(xcord, ycord, type) {
-    var bot = new db({
-        username: namelist[Math.floor(Math.random() * namelist.length)],
-        location: {
-            x: xcord,
-            y: ycord,
-            Acc: '10'
-        },
-        type: type,
-        points: 0,
-        invulnerable: 0,
-        cooldown: 0,
-        last_checkin: (new Date).getTime,
-        device_id: "bot" + (new Date).getTime
-    });
-}
 
 //update coords
 app.post('/player/update', function (req, res) {
