@@ -198,6 +198,7 @@ function setup_player(player, callback) {
 
             } else {
                 //Then he is the wackman
+                console.log("Hit1");
                 player.type = '0';
 
 
@@ -207,6 +208,7 @@ function setup_player(player, callback) {
                         num_food++;
                     }
                 }
+                console.log("num food: " + num_food);
                 //add bots while the num of foods is less than 5 in the area
                 while (num_food < 5) {
                     if (Math.random() >= 0.5) {
@@ -225,6 +227,7 @@ function setup_player(player, callback) {
                         }
                     }
                     add_bot(xcord, ycord, 2);
+                    console.log("added bot");
                     num_food++;
                 }
             }
