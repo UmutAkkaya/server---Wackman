@@ -15,7 +15,7 @@ var app = express();
 
 //earths radius - cuz why not
 var R = 6371000; // metres
-
+var DISTANCE = 1500;
 
 
 // uncomment after placing your favicon in /public
@@ -53,6 +53,7 @@ app.get('/players/list/around', function (req, res) {
     });
 });
 
+//get users around a coordinate
 function get_peeps_around(xcord, ycord, radius, callback) {
     var xnum = parseFloat(xcord);
     var ynum = parseFloat(ycord);
@@ -68,8 +69,7 @@ function get_peeps_around(xcord, ycord, radius, callback) {
             for (i = 0; i < list.length; i++) {
                 var dist = longlan_to_meters(list[i].location.x, xnum, list[i].location.y, ynum);
                 console.log(dist);
-                //default distance is 1500 km
-                if (dist <= 1500 && dist >= -1500) {
+                if (dist <= DISTANCE && dist >= -DISTANCE) {
                     peeps_around.push(list[i]);
                 }
             }
@@ -78,6 +78,8 @@ function get_peeps_around(xcord, ycord, radius, callback) {
         }
     });
 }
+
+//get specific player and set type
 app.get('/player/get/:name', function (req, res) {
     db.findOne({
         device_id: req.params.name
@@ -161,6 +163,7 @@ app.get('/player/get/:name', function (req, res) {
     });
 });
 
+//find distance between coords
 function longlan_to_meters(lat1, lat2, lon1, lon2) {
     var Lat1 = lat1 * Math.PI / 180;
     var Lat2 = lat2 * Math.PI / 180;
@@ -176,9 +179,65 @@ function longlan_to_meters(lat1, lat2, lon1, lon2) {
     return d;
 }
 
-var test = longlan_to_meters(43.659916, 43.654452, -79.388647, -79.385407);
-console.log(test);
+//////IM HERE---------------------------------------------------------------------------------------------------------
+//if player is idle for too long client sends a post req
+app.post('/player/idle', function (req, res) {
+    db.findOne({
+        device_id: req.param('dev_id')
+    }, function (err, player) {
+        if (err) {
+            res.status(500);
+            res.send(err.message);
+        } else {
+            //turn player into cherry
+            player.type = '2';
+            player.save(function (err) {
+                if (err) {
+                    res.status(500);
+                    res.send(err.message);
+                } else {
+                    //get players around his location and set one the new wackman
+                    get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
+                        var index = Math.floor(Math.random() * result.length);
+                        if (result[index].device_id == req.param('dev_id')) {
+                            //if its the same player
+                            result[((index + 1) % result.length)].type = '0';
+                            result[((index + 1) % result.length)].invulnerable = (new Date()).getTime();
+                            //NOTIFY HERE!
+                            result[((index + 1) % result.length)].save(function (err) {
+                                if (err) {
+                                    res.status(500);
+                                    res.send(err.message);
+                                } else {
+                                    res.status(200);
+                                    res.send("OK");
+                                }
+                            });
 
+                        } else {
+                            //not the same player
+                            result[index].type = '0';
+                            result[index].invulnerable = (new Date()).getTime();
+                            //NOTIFY HERE!
+                            result[index].save(function (err) {
+                                if (err) {
+                                    res.status(500);
+                                    res.send(err.message);
+                                } else {
+                                    res.status(200);
+                                    res.send("OK");
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+
+        }
+    });
+});
+
+//create a new player with device id and username
 app.post('/player/create', function (req, res) {
     db.findOne({
         device_id: req.param('dev_id')
@@ -197,7 +256,7 @@ app.post('/player/create', function (req, res) {
                         res.status(500);
                         res.send(err.message)
                     } else {
-                        if (namefound) {
+                        if (namefound && namefound.device_id != req.param('dev_id')) {
                             //name is already taken
                             res.status(400);
                             res.send("Name already taken");
