@@ -232,7 +232,7 @@ function setup_player(player, callback) {
                                 console.log(err);
                             }
                         });
-
+                        console.log(bot);
                         console.log("added bot");
                         num_food++;
                     });
@@ -258,8 +258,8 @@ function add_bot(xcord, ycord, type, callback) {
         points: 0,
         invulnerable: 0,
         cooldown: 0,
-        last_checkin: (new Date).getTime,
-        device_id: "bot" + (new Date).getTime
+        last_checkin: (new Date).getTime(),
+        device_id: "bot" + (new Date).getTime()
     });
     callback(bot);
 }
