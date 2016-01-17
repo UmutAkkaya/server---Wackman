@@ -16,6 +16,7 @@ var app = express();
 //earths radius - cuz why not
 var R = 6371000; // metres
 var DISTANCE = 1500;
+var namelist = ['Jerry', 'Terry', 'Berry', 'Cleary', 'Sup', 'OP', 'YourMom', 'Tim', 'Ally', 'Sarah', 'Celine', 'Tommy', 'Masheyat', 'Christy', '123', 'Guy', 'Gal', 'Justin', 'Drake', 'Andrea', 'Roman', 'Sally', 'Kenny', 'Stan', 'Lisa', 'Marge', 'Presentation Guy', 'Kyle', 'LifeisHard', 'Indico', 'NSpire'];
 
 
 // uncomment after placing your favicon in /public
@@ -32,6 +33,56 @@ app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+
+setInterval(checkplayers(), 30000);
+
+function checkplayers() {
+    db.find({}, function (err, result) {
+        if (err) {
+            console.log(err.message);
+        } else {
+            var i;
+            var a;
+            for (i = 0; i < result.length; i++) {
+                if (((new Date()).getTime() - result[i].last_checkin > 600000) && (result[i].device_id.search('bot') == 1)) {
+                    //they didnt checkin in a while & not bot
+                    if (result[i].type == '0') {
+                        set_new_wackman(result[i]);
+                    } else if (result[i].type == '1') {
+                        //reassign it as a food
+                        result[i].type = '2';
+                        //TODO: assign a new ghost
+                        for (a = 0; a < result.length; a++) {
+                            if (result[a].type == '2') {
+                                result[a].type = '1';
+                                result[a].save(function (err) {
+                                    if (err) {
+                                        console.log(err);
+                                    } else {
+                                        //Done
+                                    }
+                                });
+                                break;
+                            }
+                        }
+                        result[i].save(function (err) {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                //Done
+                            }
+                        });
+                    } else {
+                        //do nothing if not ghost or wackman
+                    }
+                } else {
+                    //do nothing
+                }
+            }
+        }
+    });
+
+}
 
 
 app.get('/players/list', function (req, res) {
@@ -110,14 +161,11 @@ app.get('/player/get/:name', function (req, res) {
         }
     });
 });
-
+//+-2
 function setup_player(player, callback) {
-    if (player.type != "-1")
-    {
-        callback(player);   
-    }
-    else
-    {
+    if (player.type != "-1") {
+        callback(player);
+    } else {
         get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
 
             //get the result of wackmans, ghosts, and cherries to see what type the user is
@@ -129,6 +177,33 @@ function setup_player(player, callback) {
                     break;
                 }
             }
+            var num_food = 0;
+            for (i = 0; i < result.length; i++) {
+                if (result.type == '2' || result.type == '3') {
+                    num_food++;
+                }
+            }
+            //add bots while the num of foods is less than 5 in the area
+            while (num_food < 5) {
+                if (Math.random() >= 0.5) {
+                    var xcord = player.location.x + 0.001000 + (Math.random() * 0.001000);
+                    if (Math.random() >= 0.5) {
+                        var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                    } else {
+                        var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                    }
+                } else {
+                    var xcord = player.location.x - 0.001000 - (Math.random() * 0.001000);
+                    if (Math.random() >= 0.5) {
+                        var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                    } else {
+                        var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                    }
+                }
+                add_bot(xcord, ycord, 2);
+                num_food++;
+            }
+
             if (wackmanaround) {
                 //there is already a wackman around the area
                 //lets say 40% chance of being a ghost and 50% chance of being a cherry and 10% of being a SuperFood
@@ -171,7 +246,6 @@ function longlan_to_meters(lat1, lat2, lon1, lon2) {
     return d;
 }
 
-//////IM HERE---------------------------------------------------------------------------------------------------------
 //if player is idle for too long client sends a post req
 app.post('/player/idle', function (req, res) {
     db.findOne({
@@ -188,46 +262,52 @@ app.post('/player/idle', function (req, res) {
                     res.status(500);
                     res.send(err.message);
                 } else {
-                    //get players around his location and set one the new wackman
-                    get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
-                        var index = Math.floor(Math.random() * result.length);
-                        if (result[index].device_id == req.param('dev_id')) {
-                            //if its the same player
-                            result[((index + 1) % result.length)].type = '0';
-                            result[((index + 1) % result.length)].invulnerable = (new Date()).getTime();
-                            //NOTIFY HERE!
-                            result[((index + 1) % result.length)].save(function (err) {
-                                if (err) {
-                                    res.status(500);
-                                    res.send(err.message);
-                                } else {
-                                    res.status(200);
-                                    res.send("OK");
-                                }
-                            });
-
-                        } else {
-                            //not the same player
-                            result[index].type = '0';
-                            result[index].invulnerable = (new Date()).getTime();
-                            //NOTIFY HERE!
-                            result[index].save(function (err) {
-                                if (err) {
-                                    res.status(500);
-                                    res.send(err.message);
-                                } else {
-                                    res.status(200);
-                                    res.send("OK");
-                                }
-                            });
-                        }
-                    });
+                    set_new_wackman(player);
                 }
             });
 
         }
     });
 });
+
+
+function set_new_wackman(player) {
+    //get players around his location and set one the new wackman
+    get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
+        var index = Math.floor(Math.random() * result.length);
+        if (result[index].device_id == player.device_id) {
+            //if its the same player
+            result[((index + 1) % result.length)].type = '0';
+            result[((index + 1) % result.length)].invulnerable = (new Date()).getTime();
+            //NOTIFY HERE!
+            result[((index + 1) % result.length)].save(function (err) {
+                if (err) {
+                    res.status(500);
+                    res.send(err.message);
+                } else {
+                    res.status(200);
+                    res.send("OK");
+                }
+            });
+
+        } else {
+            //not the same player
+            result[index].type = '0';
+            result[index].invulnerable = (new Date()).getTime();
+            //NOTIFY HERE!
+            result[index].save(function (err) {
+                if (err) {
+                    res.status(500);
+                    res.send(err.message);
+                } else {
+                    res.status(200);
+                    res.send("OK");
+                }
+            });
+        }
+    });
+}
+
 
 //create a new player with device id and username
 app.post('/player/create', function (req, res) {
@@ -297,6 +377,7 @@ app.post('/player/create', function (req, res) {
                                 invulnerable: 0,
                                 cooldown: 0,
                                 //dev_id
+                                last_checkin: (new Date()).getTime(),
                                 device_id: req.param('dev_id')
                             });
 
@@ -476,7 +557,23 @@ app.post('/player/interact', function (req, res) {
     });
 });
 
-
+//add bot to a coord
+function add_bot(xcord, ycord, type) {
+    var bot = new db({
+        username: namelist[Math.floor(Math.random() * namelist.length)],
+        location: {
+            x: xcord,
+            y: ycord,
+            Acc: '10'
+        },
+        type: type,
+        points: 0,
+        invulnerable: 0,
+        cooldown: 0,
+        last_checkin: (new Date).getTime,
+        device_id: "bot" + (new Date).getTime
+    });
+}
 
 //update coords
 app.post('/player/update', function (req, res) {
@@ -494,7 +591,7 @@ app.post('/player/update', function (req, res) {
                 player.location.x = req.param('x');
                 player.location.y = req.param('y');
                 player.location.Acc = req.param('accuracy');
-
+                player.last_checkin = (new Date()).getTime();
                 setup_player(player, function (player) {
                     player.save(function (err) {
                         if (err) {
