@@ -19,7 +19,8 @@ var UserSchema = mongoose.Schema({
     points: Number,
     invulnerable: Number, //getTime()
     cooldown: Number, //getTime()
-    device_id: String //64bits
+    device_id: String, //64bits
+    last_checkin: Number //getTime()
 });
 
 var User = mongoose.model('User', UserSchema);
