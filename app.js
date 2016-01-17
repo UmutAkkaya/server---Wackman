@@ -48,12 +48,8 @@ app.get('/players/list', function (req, res) {
 
 
 app.get('/players/list/around', function (req, res) {
-    get_peeps_around(parseFloat(req.param('x')), parseFloat(req.param('y')), parseFloat(req.param('radius')), function (err, result) {
-        if (!err) {
-            res.send(JSON.stringify(result));
-        } else {
-            res.status(444);
-        }
+    get_peeps_around(parseFloat(req.param('x')), parseFloat(req.param('y')), parseFloat(req.param('radius')), function (result) {
+        res.send(JSON.stringify(result));
     });
 });
 
@@ -106,9 +102,9 @@ app.get('/player/get/:name', function (req, res) {
                         }
                         if (wackmanaround) {
                             //there is already a wackman around the area
-                            //lets say 30% chance of being a ghost and 60% chance of being a cherry and 10% of being a SuperFood
+                            //lets say 40% chance of being a ghost and 50% chance of being a cherry and 10% of being a SuperFood
                             var probability = Math.random();
-                            if (0 <= probability && probability < 0.3) {
+                            if (0 <= probability && probability < 0.4) {
                                 //Ghost
                                 player.type = '1'; //Kerry, Jerry, Berry, Coarl
                                 player.save(function (err) {
@@ -119,7 +115,7 @@ app.get('/player/get/:name', function (req, res) {
                                         res.send(JSON.stringify(player));
                                     }
                                 });
-                            } else if (0.3 <= probability && probability < 0.9) {
+                            } else if (0.4 <= probability && probability < 0.9) {
                                 //Cherry
                                 player.type = '2';
                                 player.save(function (err) {
@@ -166,11 +162,6 @@ app.get('/player/get/:name', function (req, res) {
 });
 
 function longlan_to_meters(lat1, lat2, lon1, lon2) {
-    console.log("calculating distance");
-    console.log("lat1: " + lat1);
-    console.log("lat2: " + lat2);
-    console.log("lon1: " + lon1);
-    console.log("lon2: " + lon2);
     var Lat1 = lat1 * Math.PI / 180;
     var Lat2 = lat2 * Math.PI / 180;
     var deltalat = (lat2 - lat1) * Math.PI / 180;
@@ -182,7 +173,6 @@ function longlan_to_meters(lat1, lat2, lon1, lon2) {
     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
     var d = R * c;
-    console.log("d: " + d);
     return d;
 }
 
@@ -277,19 +267,22 @@ app.post('/player/create', function (req, res) {
 });
 //
 //TODO - notifications
+//     - cooldown
 //EAT OR GET EATEN - Donald Trump 
 app.post('/player/interact', function (req, res) {
+
     db.findOne({
-        name: req.param('name')
+        device_id: req.param('name')
     }, function (err, player) {
         if (err) {
             res.status(500);
         } else if (!player) {
             //player not found
             res.status(404);
+            res.send('Player not found');
         } else {
             db.findOne({
-                name: req.param('opponent')
+                device_id: req.param('opponent')
             }, function (err, opponent) {
                 if (err) {
                     res.status(500);
@@ -299,7 +292,9 @@ app.post('/player/interact', function (req, res) {
                     res.send('Cant find opp');
                 } else {
                     //opponent and the player found
-                    if ((Date.getTime() - player.cooldown > (1.8 * Math.pow(10, 6))) && (Date.getTime() - opponent.cooldown > (1.8 * Math.pow(10, 6)))) {
+                    var curdate = (new Date()).getTime();
+                    if ((curdate - player.cooldown > (1.8 * Math.pow(10, 6))) && (curdate - opponent.cooldown > (1.8 * Math.pow(10, 6)))) {
+
                         //if its not under cooldown
                         if (player.type == '0') {
                             //if wackman
@@ -309,20 +304,48 @@ app.post('/player/interact', function (req, res) {
                                 //part (aka if player == ghost and opponent is pacman)
                                 player.points += 100;
                                 opponent.type = '1'; //make it jerry :P
-                                opponent.cooldown = Date.getTime();
+                                opponent.cooldown = curdate;
                                 //set the cooldown time - it cant get eaten nor eat while on cooldown
-
+                                //save--------------
+                                player.save(function (err) {
+                                    if (err) {
+                                        res.send(err.message);
+                                    } else {
+                                        opponent.save(function (err) {
+                                            if (err) {
+                                                res.send(err.message);
+                                            } else {
+                                                res.send('OK');
+                                            }
+                                        });
+                                    }
+                                });
+                                //------------------
                                 //notify player
                             } else if (opponent.type == '3') {
                                 //SuperFood
                                 player.points += 100;
-                                player.invulnerable = Date.getTime();
+                                player.invulnerable = curdate;
                                 opponent.type = '1';
-                                opponent.cooldown = Date.getTime();
+                                opponent.cooldown = curdate;
                                 //notify player
+                                //save--------------
+                                player.save(function (err) {
+                                    if (err) {
+                                        res.send(err.message);
+                                    } else {
+                                        opponent.save(function (err) {
+                                            if (err) {
+                                                res.send(err.message);
+                                            } else {
+                                                res.send('OK');
+                                            }
+                                        });
+                                    }
+                                });
+                                //------------------
                             } else if (opponent.type == '1') {
-                                var curtime = Date.getTime();
-                                if (curtime - player.invulnerable < (3.6 * Math.pow(10, 6))) {
+                                if (curdate - player.invulnerable < (3.6 * Math.pow(10, 6))) {
                                     player.points += 300;
                                     var prob = Math.random();
                                     if (prob < 0.2) {
@@ -330,42 +353,71 @@ app.post('/player/interact', function (req, res) {
                                     } else {
                                         opponent.type = '2';
                                     }
-                                    opponent.cooldown = Date.getTime();
+                                    opponent.cooldown = curdate;
                                     //notify player
+                                    //save--------------
+                                    player.save(function (err) {
+                                        if (err) {
+                                            res.send(err.message);
+                                        } else {
+                                            opponent.save(function (err) {
+                                                if (err) {
+                                                    res.send(err.message);
+                                                } else {
+                                                    res.send('OK');
+                                                }
+                                            });
+                                        }
+                                    });
+                                    //------------------
                                 }
                             }
                         } else if (player.type == '1') {
+
+                            //if player ghost
                             if (opponent.type == '0') {
-                                if (curtime - player.invulnerable > (3.6 * Math.pow(10, 6))) {
+                                if (curdate - player.invulnerable > (3.6 * Math.pow(10, 6))) {
                                     player.points += 100;
                                     opponent.type = '2';
-                                    opponent.cooldown = Date.getTime();
+                                    opponent.cooldown = curdate;
                                     player.type = '0';
                                     //notify player
+                                    //save--------------
+                                    player.save(function (err) {
+                                        if (err) {
+                                            res.send(err.message);
+                                        } else {
+                                            opponent.save(function (err) {
+                                                if (err) {
+                                                    res.send(err.message);
+                                                } else {
+                                                    res.send('OK');
+                                                }
+                                            });
+                                        }
+                                    });
+                                    //------------------
+                                } else {
+                                    res.send("Player Invinsible");
                                 }
                             }
+                        } else {
+                            res.send("dude you shouldnt be here");
                         }
-                        //save--------------
-                        player.save(function (err) {
-                            if (err) {
-                                res.send(err.message);
-                            }
-                        });
-                        opponent.save(function (err) {
-                            if (err) {
-                                res.send(err.message);
-                            }
-                        });
-                        //----------------
+
+                    } else {
+                        //else they are in cooldown no interaction
+                        res.status(200);
+                        res.send('COOLDOWN');
+                        //notify player
                     }
-                    //else they are in cooldown no interaction
-                    //notify player
                 }
             });
         }
 
     });
 });
+
 
 
 //update coords
