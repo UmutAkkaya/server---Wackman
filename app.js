@@ -34,7 +34,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-setInterval(checkplayers(), 30000);
+setInterval(checkplayers, 30000);
 
 function checkplayers() {
     db.find({}, function (err, result) {
