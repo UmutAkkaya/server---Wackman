@@ -212,18 +212,18 @@ function setup_player(player, callback) {
                 //add bots while the num of foods is less than 5 in the area
                 while (num_food < 5) {
                     if (Math.random() >= 0.5) {
-                        var xcord = player.location.x + 0.001000 + (Math.random() * 0.001000);
+                        var xcord = parseFloat(player.location.x) + 0.001000 + (Math.random() * 0.001000);
                         if (Math.random() >= 0.5) {
-                            var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                            var ycord = parseFloat(player.location.y) + 0.001000 + (Math.random() * 0.001000);
                         } else {
-                            var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                            var ycord = parseFloat(player.location.y) - 0.001000 - (Math.random() * 0.001000);
                         }
                     } else {
-                        var xcord = player.location.x - 0.001000 - (Math.random() * 0.001000);
+                        var xcord = parseFloat(player.location.x) - 0.001000 - (Math.random() * 0.001000);
                         if (Math.random() >= 0.5) {
-                            var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                            var ycord = parseFloat(player.location.y) + 0.001000 + (Math.random() * 0.001000);
                         } else {
-                            var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                            var ycord = parseFloat(player.location.y) - 0.001000 - (Math.random() * 0.001000);
                         }
                     }
                     add_bot(xcord, ycord, 2, function (bot) {
