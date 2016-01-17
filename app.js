@@ -265,6 +265,12 @@ app.post('/player/create', function (req, res) {
         }
     });
 });
+
+app.get('/', function (req, res) {
+    res.status(200);
+    res.send("Whatcha doin' here");
+});
+
 //
 //TODO - notifications
 //     - cooldown
