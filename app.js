@@ -91,69 +91,17 @@ app.get('/player/get/:name', function (req, res) {
                 res.status(404);
             } else {
                 if (player.type == '-1') {
-                    get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
 
-                        //get the result of wackmans, ghosts, and cherries to see what type the user is
-                        var i;
-                        var wackmanaround = false;
-                        for (i = 0; i < result.length; i++) {
-                            if (result[i].type == '0') {
-                                wackmanaround = true;
-                                break;
-                            }
-                        }
-                        if (wackmanaround) {
-                            //there is already a wackman around the area
-                            //lets say 40% chance of being a ghost and 50% chance of being a cherry and 10% of being a SuperFood
-                            var probability = Math.random();
-                            if (0 <= probability && probability < 0.4) {
-                                //Ghost
-                                player.type = '1'; //Kerry, Jerry, Berry, Coarl
-                                player.save(function (err) {
-                                    if (err) {
-                                        res.send(err.message);
-                                    } else {
-                                        res.status(200);
-                                        res.send(JSON.stringify(player));
-                                    }
-                                });
-                            } else if (0.4 <= probability && probability < 0.9) {
-                                //Cherry
-                                player.type = '2';
-                                player.save(function (err) {
-                                    if (err) {
-                                        res.send(err.message);
-                                    } else {
-                                        res.status(200);
-                                        res.send(JSON.stringify(player));
-                                    }
-                                });
+                    setup_player(player, function (player) {
+                        player.save(function (err) {
+                            if (err) {
+                                res.send(err.message);
                             } else {
-                                //Super Awesome Amazing Food!
-                                player.type = '3';
-                                player.save(function (err) {
-                                    if (err) {
-                                        res.send(err.message);
-                                    } else {
-                                        res.status(200);
-                                        res.send(JSON.stringify(player));
-                                    }
-                                });
+                                res.status(200);
+                                res.send(JSON.stringify(player));
                             }
-                        } else {
-                            //Then he is the wackman
-                            player.type = '0';
-                            player.save(function (err) {
-                                if (err) {
-                                    res.send(err.message);
-                                } else {
-                                    res.status(200);
-                                    res.send(JSON.stringify(player));
-                                }
-                            });
-                        }
+                        });
                     });
-
                 } else {
                     //player is already set
                     res.send(JSON.stringify(player));
@@ -162,6 +110,50 @@ app.get('/player/get/:name', function (req, res) {
         }
     });
 });
+
+function setup_player(player, callback) {
+    if (player.type != "-1")
+    {
+        callback(player);   
+    }
+    else
+    {
+        get_peeps_around(player.location.x, player.location.y, player.location.Acc, function (result) {
+
+            //get the result of wackmans, ghosts, and cherries to see what type the user is
+            var i;
+            var wackmanaround = false;
+            for (i = 0; i < result.length; i++) {
+                if (result[i].type == '0') {
+                    wackmanaround = true;
+                    break;
+                }
+            }
+            if (wackmanaround) {
+                //there is already a wackman around the area
+                //lets say 40% chance of being a ghost and 50% chance of being a cherry and 10% of being a SuperFood
+                var probability = Math.random();
+                if (0 <= probability && probability < 0.4) {
+                    //Ghost
+                    player.type = '1'; //Kerry, Jerry, Berry, Coarl
+
+                } else if (0.4 <= probability && probability < 0.9) {
+                    //Cherry
+                    player.type = '2';
+
+                } else {
+                    //Super Awesome Amazing Food!
+                    player.type = '3';
+
+                }
+            } else {
+                //Then he is the wackman
+                player.type = '0';
+            }
+            callback(player);
+        });
+    }
+}
 
 //find distance between coords
 function longlan_to_meters(lat1, lat2, lon1, lon2) {
@@ -307,6 +299,7 @@ app.post('/player/create', function (req, res) {
                                 //dev_id
                                 device_id: req.param('dev_id')
                             });
+
                             newuser.save(function (err) {
                                 if (err) {
                                     res.status(500);
@@ -501,15 +494,18 @@ app.post('/player/update', function (req, res) {
                 player.location.x = req.param('x');
                 player.location.y = req.param('y');
                 player.location.Acc = req.param('accuracy');
-                player.save(function (err) {
-                    if (err) {
-                        res.status(500);
-                        res.send(err.message);
-                    } else {
-                        //return user
-                        res.status(200);
-                        res.send("OK");
-                    }
+
+                setup_player(player, function (player) {
+                    player.save(function (err) {
+                        if (err) {
+                            res.status(500);
+                            res.send(err.message);
+                        } else {
+                            //return user
+                            res.status(200);
+                            res.send("OK");
+                        }
+                    });
                 });
             }
         }
