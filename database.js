@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost/users');
+mongoose.connect('mongodb://heroku_kzl7l3v5:u7n9kcadbi1pe9nfinkviiq42b@ds047345.mongolab.com:47345/heroku_kzl7l3v5');
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
