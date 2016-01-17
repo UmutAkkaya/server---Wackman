@@ -226,9 +226,16 @@ function setup_player(player, callback) {
                             var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
                         }
                     }
-                    add_bot(xcord, ycord, 2);
-                    console.log("added bot");
-                    num_food++;
+                    add_bot(xcord, ycord, 2, function (bot) {
+                        bot.save(function (err) {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+
+                        console.log("added bot");
+                        num_food++;
+                    });
                 }
             }
 
@@ -239,7 +246,7 @@ function setup_player(player, callback) {
 
 
 //add bot to a coord
-function add_bot(xcord, ycord, type) {
+function add_bot(xcord, ycord, type, callback) {
     var bot = new db({
         username: namelist[Math.floor(Math.random() * namelist.length)],
         location: {
@@ -254,11 +261,7 @@ function add_bot(xcord, ycord, type) {
         last_checkin: (new Date).getTime,
         device_id: "bot" + (new Date).getTime
     });
-    bot.save(function (err) {
-        if (err) {
-            console.log(err);
-        }
-    });
+    callback(bot);
 }
 
 //find distance between coords
