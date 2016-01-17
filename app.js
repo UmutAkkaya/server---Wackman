@@ -177,32 +177,6 @@ function setup_player(player, callback) {
                     break;
                 }
             }
-            var num_food = 0;
-            for (i = 0; i < result.length; i++) {
-                if (result.type == '2' || result.type == '3') {
-                    num_food++;
-                }
-            }
-            //add bots while the num of foods is less than 5 in the area
-            while (num_food < 5) {
-                if (Math.random() >= 0.5) {
-                    var xcord = player.location.x + 0.001000 + (Math.random() * 0.001000);
-                    if (Math.random() >= 0.5) {
-                        var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
-                    } else {
-                        var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
-                    }
-                } else {
-                    var xcord = player.location.x - 0.001000 - (Math.random() * 0.001000);
-                    if (Math.random() >= 0.5) {
-                        var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
-                    } else {
-                        var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
-                    }
-                }
-                add_bot(xcord, ycord, 2);
-                num_food++;
-            }
 
             if (wackmanaround) {
                 //there is already a wackman around the area
@@ -221,10 +195,40 @@ function setup_player(player, callback) {
                     player.type = '3';
 
                 }
+
             } else {
                 //Then he is the wackman
                 player.type = '0';
+
+
+                var num_food = 0;
+                for (i = 0; i < result.length; i++) {
+                    if (result.type == '2' || result.type == '3') {
+                        num_food++;
+                    }
+                }
+                //add bots while the num of foods is less than 5 in the area
+                while (num_food < 5) {
+                    if (Math.random() >= 0.5) {
+                        var xcord = player.location.x + 0.001000 + (Math.random() * 0.001000);
+                        if (Math.random() >= 0.5) {
+                            var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                        } else {
+                            var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                        }
+                    } else {
+                        var xcord = player.location.x - 0.001000 - (Math.random() * 0.001000);
+                        if (Math.random() >= 0.5) {
+                            var ycord = player.location.y + 0.001000 + (Math.random() * 0.001000);
+                        } else {
+                            var ycord = player.location.y - 0.001000 - (Math.random() * 0.001000);
+                        }
+                    }
+                    add_bot(xcord, ycord, 2);
+                    num_food++;
+                }
             }
+
             callback(player);
         });
     }
